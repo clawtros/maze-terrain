@@ -1,0 +1,201 @@
+<!doctype html>
+<html>
+  <head>
+    <title>ClickityClack</title>
+    <style type="text/css">
+      #content {
+        margin:25px;
+      }
+canvas {
+    float:left;
+    border:2px solid black;
+}
+    </style>
+    <script type="text/javascript" src="mazegen.js"></script>
+
+    <script src="https://raw.github.com/mrdoob/three.js/master/build/three.js"></script> 
+    <script type="text/javascript" src="controls/FirstPersonControls.js"></script>
+    <script type="text/javascript" src="controls/TrackballControls.js"></script>
+    <script type="text/javascript" src="controls/FlyControls.js"></script>
+  </head>
+
+  <body>
+    <div id="content">
+
+      <canvas id="c" width="600" height="600" ></canvas>
+      <div id="debug"></div>
+
+      <script type="text/javascript">
+        var canvas = document.getElementById("c");
+        var start = false;
+        var end = false;
+
+        var m = initMaze(canvas);
+        var c = undefined;
+        var drawing = false;
+        var showThing = function(evt) {
+            if (m.cells[Math.floor(evt.layerX / resolution)]) {
+                c = m.cells[Math.floor(evt.layerX / resolution)][Math.floor(evt.layerY/resolution)];
+                if (c) {
+                    //document.getElementById("debug").innerHTML = "(" + c.x + ", " + c.y + ") " + "[" + c.walls + "] " + m.getNeighbors(c, true, true).map(function(a) {return "("+ a.x + "," +a.y +")" });
+                    
+                }
+            }
+            
+        };
+
+canvas.addEventListener("mousemove", showThing);
+canvas.addEventListener("mousedown", function(evt) { 
+    if (!c) return;
+    if (!start) {
+        start = c;
+        c.color = "green";
+        c.draw();
+    } else {
+        if (!end) {
+            end = c;
+            c.color = "red";
+            c.draw();
+        } 
+        
+    }
+
+} );
+
+canvas.addEventListener("mouseup", function(evt) { 
+    if (start && end) {
+        m.clear();
+        var path = as_path(m, start, end, true);
+        var p = path[0];
+        var shades = path[1];
+        for (var i in p) {
+            var c = p[i];
+            c.color = "#f00";
+            c.draw();
+        }
+        start = false; 
+        end = false; 
+        make3d(shades);
+    }} );
+
+var scene = new THREE.Scene(); 
+var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);  
+var renderer = new THREE.WebGLRenderer({ antialias: true}); 
+var controls;
+var cubes = [];
+var clock = new THREE.Clock();
+var controls;
+
+var plane;
+
+var alight = new THREE.DirectionalLight(0xffffff, 1);
+alight.position.set(15, 20, 10);
+scene.add(alight);
+initScene();
+
+function initScene() {
+    
+    renderer.setSize(600, 600);    
+    document.body.appendChild(renderer.domElement);
+
+    controls = new THREE.FlyControls( camera );
+    controls.movementSpeed=10;
+    //controls.lookSpeed = 0.1;
+    controls.rollSpeed = 1;
+    controls.dragToLook = true;
+    
+    camera.position.x = 30;
+    camera.position.y = 45;
+    camera.position.z = 80;
+
+    camera.lookAt(new THREE.Vector3(30, 0, 0));
+    camera.rotation.z = -90 * Math.PI / 180;    
+    controls.domElement = renderer.domElement;
+
+    mirrorCubeCamera = new THREE.CubeCamera( 0.1, 5000, 512 );    
+    scene.add( mirrorCubeCamera );
+
+    var mirrorCubeMaterial = new THREE.MeshBasicMaterial( { envMap: mirrorCubeCamera.renderTarget } );
+    plane = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshPhongMaterial({color:0x0000ff}));
+
+    plane.rotation.x = -90 * Math.PI / 180;
+   
+    plane.position.y = 5;
+    plane.overdraw = true;
+        
+    scene.add(plane);
+}
+
+var geometry = new THREE.CubeGeometry(1,1,1);
+
+function make3d(shades) {
+
+    while (cubes.length > 0) {
+        scene.remove(cubes.pop());
+    }
+    
+
+    var maxpath = shades.map(function(i) { return i.pathlen }).reduce(function(a, b) { return a > b ? a : b; });
+
+    for (var c in shades) {
+        var cell = shades[c].cell;
+
+        var col = shades[c].pathlen / maxpath;
+        var x = 40+Math.floor((shades[c].pathlen / maxpath) * 180);
+
+        var tcol = new THREE.Color();
+        //tcol.r = Math.floor(x*0.2;
+        //tcol.g = Math.floor(x*0.9);
+        //tcol.b = x*0.4;
+        tcol.setRGB(x, x, x);
+        var color = 0x11cc55;
+        if (col > 0.95) {
+            color = 0xffff00;
+        } else if (col > 0.6) {
+            color = 0x11cc55;
+        } else if (col > 0.3) {
+            color = 0x009922;
+        } else if (col > 0.1) {
+            color = 0x005500;
+        } else if (col > 0.05) {
+            color = 0xcccccc;
+        } else {
+            color = 0xffffff;
+        }
+        
+        var material = new THREE.MeshLambertMaterial({color: color}); 
+        var cube = new THREE.Mesh(geometry, material);
+        
+        var cellscale = 2;
+        cube.position.x = cell.x * cellscale;
+        cube.position.z = cell.y * cellscale;
+        cube.position.y = (1+ (1-shades[c].pathlen/maxpath))*3*cellscale;
+        cube.scale.x = cellscale;
+        cube.scale.z = cellscale;
+        cube.scale.y = 1+ (1-shades[c].pathlen/maxpath)*6*cellscale;
+
+        scene.add(cube);
+        cubes.push(cube);
+
+    }
+    
+}
+    function render() { 
+        requestAnimationFrame(render);
+        // plane.visible = false;
+	// mirrorCubeCamera.updateCubeMap( renderer, scene );
+	// plane.visible = true;
+
+        renderer.render(scene, camera); 
+        if (controls) {
+            controls.update(clock.getDelta());
+        } else {
+            console.log(camera.position);
+        }
+    } 
+    render();
+    make3d(as_path(m, m.cells[0][0], m.cells[m.cells.length - 1][m.cells.length-1], true)[1]);
+      </script>
+    </div>
+  </body>
+</html>
