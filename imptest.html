@@ -13,13 +13,57 @@ canvas {
     </style>
     <script type="text/javascript" src="mazegen.js"></script>
 
-    <script src="https://raw.github.com/mrdoob/three.js/master/build/three.js"></script> 
+    <script type="text/javascript" src="three.js"></script> 
     <script type="text/javascript" src="controls/FirstPersonControls.js"></script>
     <script type="text/javascript" src="controls/TrackballControls.js"></script>
     <script type="text/javascript" src="controls/FlyControls.js"></script>
   </head>
 
   <body>
+    <div id="vertexShader" style="display:none">
+precision mediump float;
+varying vec4 vNormal;
+uniform float maxY;
+
+vec4 colorAtHeight(float height) {
+    vec4 result;
+    vec3 color;
+
+    color = vec3(0.0, 0.0, 0.0);
+    height = clamp(height/maxY, 0.0, 1.0);
+    color = color + smoothstep(-1.0, 0.01, height) * vec3(1.0, 1.0, 0.6);   
+    color = color + smoothstep(0.01, 0.3, height) * vec3(-0.8, -0.4, -0.4); 
+    color = color + smoothstep(0.3, 0.5, height) * vec3(-0.2, 0.2, -0.2); 
+    color = color + smoothstep(0.5, 0.9, height) * vec3(0.0, -0.2, -0.2); 
+    color = color + smoothstep(0.9, 0.97, height) * vec3(0.9, 0.3, 0.9);  
+    color = color + smoothstep(0.97, 1.0, height) * vec3(0.1, 0.1, 0.1);   
+
+    result = vec4(color, 1.0);
+    return result;
+}
+
+void main() {
+    gl_Position = projectionMatrix *
+                  modelViewMatrix *
+                  vec4(position,1.0);
+
+    float height = position.y / 2.0;
+    
+    vNormal = colorAtHeight(height);
+
+}
+    </div>
+    <div id="fragmentShader" style="display:none;">
+
+precision mediump float;
+varying vec4 vNormal;
+
+    void main() {
+
+        gl_FragColor = vNormal;
+
+    }
+    </div>
     <div id="content">
 
       <canvas id="c" width="600" height="600" ></canvas>
@@ -105,10 +149,10 @@ function initScene() {
     controls.dragToLook = true;
     
     camera.position.x = 30;
-    camera.position.y = 45;
-    camera.position.z = 80;
+    camera.position.y = 35;
+    camera.position.z = 100;
 
-    camera.lookAt(new THREE.Vector3(30, 0, 0));
+    camera.lookAt(new THREE.Vector3(30, 0, 30));
     camera.rotation.z = -90 * Math.PI / 180;    
     controls.domElement = renderer.domElement;
 
@@ -116,17 +160,17 @@ function initScene() {
     scene.add( mirrorCubeCamera );
 
     var mirrorCubeMaterial = new THREE.MeshBasicMaterial( { envMap: mirrorCubeCamera.renderTarget } );
-    plane = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshPhongMaterial({color:0x0000ff}));
+    plane = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshPhongMaterial({color:0x0000ff}));
 
     plane.rotation.x = -90 * Math.PI / 180;
    
-    plane.position.y = 5;
-    plane.overdraw = true;
+    plane.position.y = -1;
+
         
     scene.add(plane);
 }
 
-var geometry = new THREE.CubeGeometry(1,1,1);
+
 
 function make3d(shades) {
 
@@ -136,7 +180,8 @@ function make3d(shades) {
     
 
     var maxpath = shades.map(function(i) { return i.pathlen }).reduce(function(a, b) { return a > b ? a : b; });
-
+    var merged = new THREE.CubeGeometry(0,0,0);
+    var maxY = 0.1;
     for (var c in shades) {
         var cell = shades[c].cell;
 
@@ -164,21 +209,44 @@ function make3d(shades) {
         }
         
         var material = new THREE.MeshLambertMaterial({color: color}); 
+        var geometry = new THREE.CubeGeometry(1,1,1);
+
         var cube = new THREE.Mesh(geometry, material);
         
-        var cellscale = 2;
+        var cellscale = 0.75;
         cube.position.x = cell.x * cellscale;
         cube.position.z = cell.y * cellscale;
-        cube.position.y = (1+ (1-shades[c].pathlen/maxpath))*3*cellscale;
+        cube.position.y = ((1-shades[c].pathlen/maxpath))*10*cellscale;
+
         cube.scale.x = cellscale;
         cube.scale.z = cellscale;
-        cube.scale.y = 1+ (1-shades[c].pathlen/maxpath)*6*cellscale;
+        cube.scale.y = (1-shades[c].pathlen/maxpath)*20*cellscale;
+        if (cube.position.y > maxY) {
+            maxY = cube.position.y;
+        }
+        if (merged == false) {
+            console.log("here");
 
-        scene.add(cube);
+            merged = cube.geometry;
+        } else {
+            THREE.GeometryUtils.merge(merged, cube);
+            //Console(merged, cube.geometry);
+                
+        }
+        //scene.add(cube);
         cubes.push(cube);
 
     }
-    
+
+    var mm = new THREE.Mesh(merged, new THREE.ShaderMaterial({
+        vertexColors:THREE.VertexColors,
+        uniforms:{'maxY': {type:'f', value: maxY}},
+        vertexShader:document.getElementById('vertexShader').innerHTML,
+        fragmentShader:document.getElementById('fragmentShader').innerHTML
+    }));
+    mm.overdraw = true;
+    scene.add(mm);
+    console.log(mm);
 }
     function render() { 
         requestAnimationFrame(render);
@@ -194,7 +262,9 @@ function make3d(shades) {
         }
     } 
     render();
-    make3d(as_path(m, m.cells[0][0], m.cells[m.cells.length - 1][m.cells.length-1], true)[1]);
+var cb = m.cells.length - 1;
+var cbd = Math.floor(cb / 4);
+    make3d(as_path(m, m.cells[2*cbd][2*cbd],m.cells[cbd][cbd],  true)[1]);
       </script>
     </div>
   </body>

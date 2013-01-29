@@ -1,4 +1,4 @@
-var resolution = 20;
+var resolution = 6;
 var walldirs = [[0, 1], [1, 0], [0, -1], [-1, 0]];
 var wallwidth = 1;
 
