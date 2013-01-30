@@ -1,5 +1,5 @@
 var scene = new THREE.Scene(); 
-var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 5000);  
+var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 15000);  
 var renderer = new THREE.WebGLRenderer(); 
 var controls;
 var cubes = [];
@@ -88,11 +88,12 @@ function make3d(shades) {
         var cellscale = resolution;
         cube.position.x = cell.x * cellscale - size/2;
         cube.position.z = cell.y * cellscale - size/2;
-        cube.position.y = (1-(shades[c].pathlen/maxpath))*10*cellscale;
+        var ypos = Math.pow(5*(1-(shades[c].pathlen/maxpath)),1.5)*cellscale;
+        cube.position.y = ypos;
 
         cube.scale.x = cellscale;
         cube.scale.z = cellscale;
-        cube.scale.y = 2*cube.position.y;
+        cube.scale.y = 2*ypos;
         if (col > maxY) {
             maxY = cube.position.y;
         }
@@ -101,7 +102,6 @@ function make3d(shades) {
     }
 
     var mm = new THREE.Mesh(merged, new THREE.ShaderMaterial({
-        vertexColors:THREE.VertexColors,
         uniforms:{'maxY': {type:'f', value: maxY},
                   'lightPosition': {type:'v3', value: new THREE.Vector3(0,300,0)}},
         vertexShader:document.getElementById('vertexShader').innerHTML,
