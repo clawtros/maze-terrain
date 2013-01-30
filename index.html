@@ -163,8 +163,8 @@ void main() {
     vec4 ripples = textureCube( EnvMap, normalize(vec3(-r.x+svar, -r.y, -r.z+cvar)));
 
     reflectedColor = normalize(reflectedColor + vec4(0.0, 0.0, 0.0, 0.0));
-    reflectedColor = mix(reflectedColor, ripples, 0.2);
-    reflectedColor = mix(reflectedColor, vec4(BaseColor,1.0), 0.1);
+    reflectedColor = mix(reflectedColor, ripples, 0.5);
+    reflectedColor = mix(reflectedColor, vec4(BaseColor,1.0), 0.5);
 
     gl_FragColor = reflectedColor;
 }
@@ -190,7 +190,7 @@ varying float height;
 varying float lightIntensity;
 uniform float maxY;
 uniform vec3 lightPosition;
-const float ambientLight = 0.0;
+const float ambientLight = 0.2;
 
 vec4 colorAtHeight(float height) {
     vec4 result;
