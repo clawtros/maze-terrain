@@ -96,13 +96,7 @@ function make3d(shades) {
         if (col > maxY) {
             maxY = cube.position.y;
         }
-        if (merged == false) {
-            console.log("here");
-
-            merged = cube.geometry;
-        } else {
-            THREE.GeometryUtils.merge(merged, cube);
-        }
+        THREE.GeometryUtils.merge(merged, cube);
         cubes.push(cube);
     }
 

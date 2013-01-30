@@ -114,13 +114,32 @@ canvas.addEventListener("mouseup", function(evt) {
 varying vec3  Normal;
 varying vec3  EyeDir;
 varying vec3  VecToCamera;
+varying vec3  Refract;
+varying float Ratio;
 varying vec3  uvs;
 varying float lightIntensity;
+varying vec3 Temp;
+
 uniform vec3  cameraPos;
 uniform vec3  lightPosition;
 
+const float Eta = 0.66;
+const float FresnelPower = 5.0;
+const float F  = ((1.0-Eta) * (1.0-Eta)) / ((1.0+Eta) * (1.0+Eta));
+
 void main()
 {
+
+    vec4 ecPosition  = modelViewMatrix * vec4(position, 1.0);
+    vec3 ecPosition3 = ecPosition.xyz / ecPosition.w;
+
+    vec3 i = normalize(ecPosition3);
+    vec3 n = normalize(normal);
+
+    Ratio   = F + (1.0 - F) * pow((1.0 - dot(-i, n)), FresnelPower);
+
+    Refract = refract(i, n, Eta);
+    Temp = Refract;
     gl_Position    = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
     Normal         = normal;
     vec4 pos       = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
@@ -128,8 +147,9 @@ void main()
     VecToCamera    = cameraPos - position.xyz;
     uvs = position.xyz;
     lightIntensity = dot(normal, normalize(lightPosition));
+
 }   
-    </script>
+</script>
 
 <script id="tryit" type="x-shader/x-fragment">
 // PLANE FRAGMENT SHADER
@@ -139,8 +159,10 @@ varying vec3  EyeDir;
 varying vec3  VecToCamera;
 varying float lightIntensity;
 varying vec3  uvs;
-
+varying vec3  Refract;
+varying vec3  Temp;
 uniform vec3  cameraPos;
+varying float Ratio;
 
 uniform samplerCube EnvMap;
 uniform float timeElapsed;
@@ -155,16 +177,20 @@ void main() {
     vec3 nnormal = normalize(Normal);
     vec3 r = normalize(reflect(DirToCamera, nnormal));
 
-    float svar = sin(uvs.x + timeElapsed) / 43.145;
-    float cvar = sin(uvs.z + timeElapsed) / 33.145;
-    float yvar = sin(uvs.y + timeElapsed) / 43.145;
+    float timescale = 2.0;
+    float svar = sin(uvs.x + timeElapsed*timescale) / 43.145;
+    float cvar = sin(uvs.z + timeElapsed*timescale) / 63.145;
+    float yvar = cos(uvs.y + timeElapsed*timescale) / 43.145;
+
 
     vec4 reflectedColor = textureCube( EnvMap, vec3(-r.x, -r.y, -r.z));
+    vec4 refractedColor = textureCube( EnvMap, -1.0*Refract );
     vec4 ripples = textureCube( EnvMap, normalize(vec3(-r.x+svar, -r.y, -r.z+cvar)));
-
-    reflectedColor = normalize(reflectedColor + vec4(0.0, 0.0, 0.0, 0.0));
+    
     reflectedColor = mix(reflectedColor, ripples, 0.5);
-    reflectedColor = mix(reflectedColor, vec4(BaseColor,1.0), 0.5);
+    
+    reflectedColor = mix(ripples, vec4(BaseColor,1.0), 0.5);
+    reflectedColor = reflectedColor + vec4(svar, yvar, cvar,1.0) * smoothstep(0.0, 1.0, dot(DirToCamera, nnormal));
 
     gl_FragColor = reflectedColor;
 }
@@ -181,7 +207,7 @@ void main() {
                   modelViewMatrix *
                   vec4(position,1.0);
     height = position.y / 2.0;
-    lightIntensity = max(dot(normalize(vec3(1.0, 1.5, 1.0)), normalize(normal)), 0.0);
+    lightIntensity = max(dot(normalize(vec3(0.5, 1.5, 1.0)), normalize(normal)), 0.0);
 }
 </script>
 <script id="fragmentShader" type="x-shader/x-fragment">
@@ -190,7 +216,7 @@ varying float height;
 varying float lightIntensity;
 uniform float maxY;
 uniform vec3 lightPosition;
-const float ambientLight = 0.2;
+const float ambientLight = 0.1;
 
 vec4 colorAtHeight(float height) {
     vec4 result;
