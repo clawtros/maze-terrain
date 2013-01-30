@@ -1,130 +1,59 @@
 <!doctype html>
 <html>
   <head>
-    <title></title>
+    <title>DFS/A*/GLSL/3JS Experiment</title>
     <style type="text/css">
       #content {
         margin:25px;
       }
-canvas {
-    float:left;
-    border:2px solid black;
-}
+      #canvases {
+      }
+      .clearfix {
+        display:block;
+        clear: both;
+      }
+      canvas {
+        float:left;
+        border:2px solid black;
+        margin-right:10px;
+      }
+      h2 {
+        margin-top:15px;
+      }
     </style>
     <script type="text/javascript" src="mazegen.js"></script>
     <script type="text/javascript" src="three.js"></script> 
     <script type="text/javascript" src="controls/FlyControls.js"></script>
-    <script type="text/javascript" src="InnerCube.js"></script>
+    <script type="text/javascript" src="3dmaze.js"></script>
   </head>
 
   <body>
-<script id="envvert" type="x-shader/x-vertex">
-varying vec3  Normal;
-varying vec3  EyeDir;
-varying vec3  VecToCamera;
-varying vec3  uvs;
-varying float lightIntensity;
-uniform vec3  cameraPos;
-uniform vec3  lightPosition;
-
-void main()
-{
-    gl_Position    = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-    Normal         = normal;
-    vec4 pos       = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-    EyeDir         = position.xyz;
-    VecToCamera    = cameraPos - position.xyz;
-    uvs = position.xyz;
-    lightIntensity = dot(normal, normalize(lightPosition));
-}   
-    </script>
-
-<script id="tryit" type="x-shader/x-fragment">
-varying vec3  Normal;
-varying vec3  EyeDir;
-varying vec3  VecToCamera;
-varying float lightIntensity;
-varying vec3  uvs;
-
-uniform vec3  cameraPos;
-
-uniform samplerCube EnvMap;
-uniform float timeElapsed;
-
-const vec3 BaseColor = vec3(0.5, 0.5, 1.0);
-const vec3 Xunitvec = vec3(1.0, 0.0, 0.0);
-const vec3 Yunitvec = vec3(0.0, 1.0, 0.0);
-
-void main() {
-    
-    vec3 DirToCamera = normalize(VecToCamera);
-    vec3 nnormal = normalize(Normal);
-    vec3 r = normalize(reflect(DirToCamera, nnormal));
-
-    float svar = sin(uvs.x + timeElapsed) / 13.15;
-    float cvar = sin(uvs.z + timeElapsed) / 13.15;
-    float yvar = cos(uvs.y + timeElapsed) / 13.15;
-
-    vec4 reflectedColor = textureCube( EnvMap, vec3(-r.x, -r.y, -r.z));
-    vec4 ripples = textureCube( EnvMap, vec3(-r.x+svar, -r.y+yvar, -r.z+cvar));
-
-    reflectedColor = normalize(reflectedColor + vec4(0.0, 0.0, 0.0, 0.0));
-    reflectedColor = mix(reflectedColor, vec4(BaseColor,1.0), 0.3);
-    reflectedColor = mix(reflectedColor, ripples, 0.1);
-    gl_FragColor = reflectedColor;
-}
-</script>
-
-    <div id="vertexShader" style="display:none">
-precision mediump float;
-varying float height;
-varying float lightIntensity;
-uniform vec3 lightPosition;
-
-void main() {
-    gl_Position = projectionMatrix *
-                  modelViewMatrix *
-                  vec4(position,1.0);
-    height = position.y / 2.0;
-    lightIntensity = max(dot(normalize(vec3(1.0, 1.5, 1.0)), normalize(normal)), 0.0);
-}
-    </div>
-    <div id="fragmentShader" style="display:none;">
-
-precision mediump float;
-varying float height;
-varying float lightIntensity;
-uniform float maxY;
-uniform vec3 lightPosition;
-const float ambientLight = 0.15;
-
-vec4 colorAtHeight(float height) {
-    vec4 result;
-    vec3 color;
-
-    color = vec3(0.0, 0.0, 0.0);
-    height = clamp(height/maxY, 0.0, 1.0);
-    color = color + smoothstep(-1.0, 0.0, height) * vec3(1.0, 1.0, 0.6);    // 1.0 1.0 0.6
-    color = color + smoothstep(0.0, 0.1, height) * vec3(-0.8, -0.4, -0.4);  // 0.2 0.6 0.2
-    color = color + smoothstep(0.1, 0.5, height) * vec3(0.0, 0.2, 0.2);      // 0.2 0.8 0.4
-    color = color + smoothstep(0.5, 0.85, height) * vec3(0.0, -0.2, -0.2);    // 0.2 0.6 0.2
-    color = color + smoothstep(0.85, 0.97, height) * vec3(0.5, 0.1, 0.3);      // 0.0 0.4 0.0
-    color = color + smoothstep(0.97, 1.2, height) * vec3(0.3, 0.3, 0.3);  
-    color = color * lightIntensity + ambientLight;
-    result = vec4(color, 1.0);
-    return result;
-}
-
-    void main() {
-        gl_FragColor = colorAtHeight(height);
-    }
-    </div>
     <div id="content">
-      <div id="debug"></div>
-      <canvas id="c" width="600" height="600" ></canvas>
-
-
+      <h1>Maze Generation / Solving / Three.js / GLSL Experiment</h1>
+      <div id="canvases">
+        <canvas id="c" width="600" height="600" ></canvas>
+      </div>
+      <div class="clearfix"></div>
+      <h2>Controls</h2>
+      <p>
+        W, A, S, D moves forward, left, backwards and right respectively.  Q and E roll the camera.  R raises viewpoint and F lowers it.  Click and drag on the 3D component to steer.
+      </p>
+      <p>
+        Clicking one point on the maze and then another point will solve the maze between those two points and generate a new 'island' on the 3D view.  Reload the page for a new maze.
+      </p>
+      <p>
+        WebGL enabled browser required for 3D awesome times.
+      </p>
       <script type="text/javascript">
+window.onload = function(evt) {
+    initScene();
+    render();
+    var cb = m.cells.length - 1;
+    var cbd = Math.floor(cb / 2);
+
+    make3d(as_path(m, m.cells[cbd][cbd],m.cells[cbd+10][cbd+20],  true)[1]);
+};
+
         var canvas = document.getElementById("c");
         var start = false;
         var end = false;
@@ -177,156 +106,113 @@ canvas.addEventListener("mouseup", function(evt) {
         make3d(shades);
     }} );
 
-var scene = new THREE.Scene(); 
-var camera = new THREE.PerspectiveCamera(75, 1, 0.1, 5000);  
-var otherCamera = new THREE.PerspectiveCamera(75, 1, 0.1, 5000);
-var renderer = new THREE.WebGLRenderer(); 
-var controls;
-var cubes = [];
-var clock = new THREE.Clock();
-var controls;
-var mirrorCubeCamera, mirrorCube;
-var plane;
-var rtTexture;
-var composer;
-var planeMaterial;
-var renderTarget;
-
-var alight = new THREE.DirectionalLight(0xffffff, 1);
-alight.position.set(15, 20, 10);
-scene.add(alight);
-initScene();
-var size = 600;
-
-function initScene() {
-    var size = 600;
-    renderer.setSize(600, 600);    
-    document.body.appendChild(renderer.domElement);
-
-    controls = new THREE.FlyControls( camera );
-    controls.movementSpeed=size/5;
-    controls.rollSpeed = 1;
-    controls.dragToLook = true;
-    
-    camera.position.x = 0;
-    camera.position.y = size/2;
-    camera.position.z = size/2;
-
-    camera.lookAt(new THREE.Vector3(0, 0, 0));
-
-    controls.domElement = renderer.domElement;
-
-    mirrorCubeCamera = new THREE.CubeCamera(0.1, 3000, 512);
-    var cubeGeom = new THREE.CubeGeometry(600, 5, 600, 1,1,1);
-    mirrorCube = new THREE.Mesh( cubeGeom, mirrorCubeMaterial);
-
-    mirrorCube.position.set(0,-100,0);
-
-    var mirrorCubeMaterial = new THREE.MeshBasicMaterial( { envMap: mirrorCubeCamera.renderTarget } );
-    mirrorCubeMaterial.doubleSided = true;
-
-    mirrorCubeCamera.position = mirrorCube.position;
-//    scene.add(mirrorCube);
-
-    scene.add(mirrorCubeCamera);
-    planeMaterial = new THREE.ShaderMaterial({
-        uniforms: { 
-            "cameraPos" : { type: "v3", value: THREE.Vector3(camera.position.x, camera.position.y, camera.position.z) },
-            "timeElapsed": {type:"f", value:0.0},
-
-            "EnvMap" : { type: "t", value: mirrorCubeCamera.renderTarget }},
-        vertexShader: document.getElementById("envvert").textContent,
-        fragmentShader: document.getElementById("tryit").textContent,
-    });
-
-    plane = new THREE.Mesh(new THREE.CubeGeometry(size*2.0, 2.0, size*2.0, 1, 1, 1), planeMaterial);
-
-    plane.position.y = -2.0;        
-    scene.add(plane);
-}
-
-
-
-function make3d(shades) {
-
-    while (cubes.length > 0) {
-        scene.remove(cubes.pop());
-    }
-    
-
-    var maxpath = shades.map(function(i) { return i.pathlen }).reduce(function(a, b) { return a > b ? a : b; });
-    var merged = new THREE.CubeGeometry(0,0,0);
-    var maxY = 0.1;
-    for (var c in shades) {
-        var cell = shades[c].cell;
-
-        var col = shades[c].pathlen / maxpath;
-        var x = 40+Math.floor((shades[c].pathlen / maxpath) * 180);
-
-        var geometry = new THREE.CubeGeometry(1,1,1);
-
-        var cube = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
-        
-        var cellscale = resolution;
-        cube.position.x = cell.x * cellscale - size/2;
-        cube.position.z = cell.y * cellscale - size/2;
-        cube.position.y = (1-(shades[c].pathlen/maxpath))*10*cellscale;
-
-        cube.scale.x = cellscale;
-        cube.scale.z = cellscale;
-        cube.scale.y = 2*cube.position.y;
-        if (col > maxY) {
-            maxY = cube.position.y;
-        }
-        if (merged == false) {
-            console.log("here");
-
-            merged = cube.geometry;
-        } else {
-            THREE.GeometryUtils.merge(merged, cube);
-        }
-        cubes.push(cube);
-    }
-
-    var mm = new THREE.Mesh(merged, new THREE.ShaderMaterial({
-        vertexColors:THREE.VertexColors,
-        uniforms:{'maxY': {type:'f', value: maxY},
-                  'lightPosition': {type:'v3', value: new THREE.Vector3(0,300,0)}},
-        vertexShader:document.getElementById('vertexShader').innerHTML,
-        fragmentShader:document.getElementById('fragmentShader').innerHTML,
-
-    }));
-    scene.add(mm);
-}
-
-    function render() { 
-        requestAnimationFrame(render);
-
-
-        plane.visible = false;
-        mirrorCubeCamera.position.x = camera.position.x;
-        mirrorCubeCamera.position.y = -camera.position.y;
-        mirrorCubeCamera.position.z = camera.position.z;
-        mirrorCubeCamera.updateCubeMap(renderer, scene);
-
-        plane.visible = true;
-
-        planeMaterial.uniforms.cameraPos.value = camera.position;
-        planeMaterial.uniforms.EnvMap.value = mirrorCubeCamera.renderTarget;
-        planeMaterial.uniforms.timeElapsed.value = clock.elapsedTime;
-        renderer.render(scene, camera);
-
-
-        controls.update(clock.getDelta());  
-        
-  
-    } 
-    render();
-var cb = m.cells.length - 1;
-var cbd = Math.floor(cb / 2);
-    make3d(as_path(m, m.cells[cbd][cbd],m.cells[cbd+10][cbd+20],  true)[1]);
       </script>
     </div>
+<script id="envvert" type="x-shader/x-vertex">
+//PLANE VERTEX SHADER
+
+varying vec3  Normal;
+varying vec3  EyeDir;
+varying vec3  VecToCamera;
+varying vec3  uvs;
+varying float lightIntensity;
+uniform vec3  cameraPos;
+uniform vec3  lightPosition;
+
+void main()
+{
+    gl_Position    = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    Normal         = normal;
+    vec4 pos       = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+    EyeDir         = position.xyz;
+    VecToCamera    = cameraPos - position.xyz;
+    uvs = position.xyz;
+    lightIntensity = dot(normal, normalize(lightPosition));
+}   
+    </script>
+
+<script id="tryit" type="x-shader/x-fragment">
+// PLANE FRAGMENT SHADER
+
+varying vec3  Normal;
+varying vec3  EyeDir;
+varying vec3  VecToCamera;
+varying float lightIntensity;
+varying vec3  uvs;
+
+uniform vec3  cameraPos;
+
+uniform samplerCube EnvMap;
+uniform float timeElapsed;
+
+const vec3 BaseColor = vec3(0.5, 0.5, 1.0);
+const vec3 Xunitvec = vec3(1.0, 0.0, 0.0);
+const vec3 Yunitvec = vec3(0.0, 1.0, 0.0);
+
+void main() {
+    
+    vec3 DirToCamera = normalize(VecToCamera);
+    vec3 nnormal = normalize(Normal);
+    vec3 r = normalize(reflect(DirToCamera, nnormal));
+
+    float svar = sin(uvs.x + timeElapsed) / 43.145;
+    float cvar = sin(uvs.z + timeElapsed) / 33.145;
+    float yvar = sin(uvs.y + timeElapsed) / 43.145;
+
+    vec4 reflectedColor = textureCube( EnvMap, vec3(-r.x, -r.y, -r.z));
+    vec4 ripples = textureCube( EnvMap, normalize(vec3(-r.x+svar, -r.y, -r.z+cvar)));
+
+    reflectedColor = normalize(reflectedColor + vec4(0.0, 0.0, 0.0, 0.0));
+    reflectedColor = mix(reflectedColor, ripples, 0.2);
+    reflectedColor = mix(reflectedColor, vec4(BaseColor,1.0), 0.1);
+
+    gl_FragColor = reflectedColor;
+}
+</script>
+
+<script id="vertexShader" type="x-shader/x-vertex">
+precision mediump float;
+varying float height;
+varying float lightIntensity;
+uniform vec3 lightPosition;
+
+void main() {
+    gl_Position = projectionMatrix *
+                  modelViewMatrix *
+                  vec4(position,1.0);
+    height = position.y / 2.0;
+    lightIntensity = max(dot(normalize(vec3(1.0, 1.5, 1.0)), normalize(normal)), 0.0);
+}
+</script>
+<script id="fragmentShader" type="x-shader/x-fragment">
+precision mediump float;
+varying float height;
+varying float lightIntensity;
+uniform float maxY;
+uniform vec3 lightPosition;
+const float ambientLight = 0.0;
+
+vec4 colorAtHeight(float height) {
+    vec4 result;
+    vec3 color;
+
+    color = vec3(0.0, 0.0, 0.0);
+    height = clamp(height/maxY, 0.0, 1.0);
+    color = color + smoothstep(-1.0, 0.0, height) * vec3(1.0, 1.0, 0.6);    // 1.0 1.0 0.6
+    color = color + smoothstep(0.0, 0.1, height) * vec3(-0.8, -0.4, -0.4);  // 0.2 0.6 0.2
+    color = color + smoothstep(0.1, 0.5, height) * vec3(0.0, 0.2, 0.2);      // 0.2 0.8 0.4
+    color = color + smoothstep(0.5, 0.85, height) * vec3(0.0, -0.2, -0.2);    // 0.2 0.6 0.2
+    color = color + smoothstep(0.85, 0.97, height) * vec3(0.5, 0.1, 0.3);      // 0.0 0.4 0.0
+    color = color + smoothstep(0.97, 1.2, height) * vec3(0.3, 0.3, 0.3);  
+    color = color * lightIntensity + ambientLight;
+    result = vec4(color, 1.0);
+    return result;
+}
+
+void main() {
+    gl_FragColor = colorAtHeight(height);
+}
+</script>
 
   </body>
 </html>
