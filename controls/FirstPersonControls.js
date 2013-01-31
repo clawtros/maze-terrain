@@ -190,15 +190,14 @@ THREE.FirstPersonControls = function ( object, domElement ) {
     this.meshes = [];
     this.playerHeight = 10.0;
     this.debugCube = new THREE.Mesh(new THREE.CubeGeometry(5,5,5,1,1,1), 
-                                    new THREE.MeshBasicMaterial({color:0xff0000}));
+                                    new THREE.MeshPhongMaterial({color:0xff0000}));
     scene.add(this.debugCube);
     this.walkable = function(x,z) {
         var angle = this.theta;
-	var tx = Math.cos( angle )*2;
-	var tz = Math.sin( angle )*2;
-        console.log(this.theta, tx, tz);
+	var tx = Math.cos( angle )*10;
+	var tz = Math.sin( angle )*10;
 
-        var dvec = new THREE.Vector2(x+tx, z+tz).normalize();
+        var dvec = new THREE.Vector2(x+tx, z+tz);
         x = dvec.x;
         z = dvec.y;
         this.debugCube.position.set(this.object.position.x + x, this.object.position.y - 5, this.object.position.z + z);
@@ -212,17 +211,16 @@ THREE.FirstPersonControls = function ( object, domElement ) {
         if (intersects.length > 0) {
             this.debugCube.position = intersects[0].point;
             this.debugCube.position.y += 5;
-            console.log(intersects[0].point);
             targetY = intersects.map(
                 function (i) {
                     return i.point.y;
                 }
-            ).reduce(function (a,b) {return a > b});
+            ).reduce(function (a,b) {return a < b});
         } 
         var dy = Math.abs(this.object.position.y - targetY - this.playerHeight);
 //        console.log(this.object.position.y, targetY, this.playerHeight, dy);
-        if (dy < maxHeightDelta) {
-//        if (true) {
+//        if (dy < maxHeightDelta) {
+        if (true) {
             return targetY + this.playerHeight;
         } else { 
             return false;

@@ -12,6 +12,7 @@ var renderTarget;
 var isfps = false;
 var size = 600;
 var meshes = [];
+var alight;
 
 function setFPSControls() {
     controls  =new THREE.FirstPersonControls(camera);
@@ -39,19 +40,18 @@ function setFlyControls() {
 }
 
 function initScene() {
-    var alight = new THREE.DirectionalLight(0xffffff, 1);
-    alight.position.set(size/2, size/4, size/4);
+    alight = new THREE.DirectionalLight(0xffffff, 1);
+    alight.position.set(size/2, size/2.5, size/3);
+
     scene.add(alight);
+
+    scene.add(new THREE.AmbientLight(0xffffff * 0.2));
 
     renderer.setSize(600, 600);    
 
-    var lightSphere = new THREE.Sphere(new THREE.CubeGeometry(100,100,100),
-                                       new THREE.MeshBasicMaterial({color:0xffff77, wireframe:true}))
-    lightSphere.position = alight.position;
-    scene.add(lightSphere);
 
     var domelement = document.getElementById('canvases').appendChild(renderer.domElement);
-    renderer.setClearColorHex(0x4444cc);
+    renderer.setClearColorHex(0x7777ff);
     if (isfps) {
         setFPSControls();
     } else {
@@ -76,7 +76,7 @@ function initScene() {
         uniforms: { 
             "cameraPos" : { type: "v3", value: THREE.Vector3(camera.position.x, camera.position.y, camera.position.z) },
             "timeElapsed": {type:"f", value:0.0},
-            "lightPosition" : {type:"v3", value: new THREE.Vector3(0, 0, 0)},
+            "lightPosition" : {type:"v3", value: alight.position},
             "EnvMap" : { type: "t", value: mirrorCubeCamera.renderTarget }},
         vertexShader: document.getElementById("envvert").textContent,
         fragmentShader: document.getElementById("tryit").textContent,
@@ -147,7 +147,7 @@ function make3d(shades) {
 
     var mm = new THREE.Mesh(merged, new THREE.ShaderMaterial({
         uniforms:{'maxY': {type:'f', value: maxY},
-                  'lightPosition': {type:'v3', value: new THREE.Vector3(0,300,0)}},
+                  'lightPosition': {type:'v3', value: alight.position }},
         vertexShader:document.getElementById('vertexShader').innerHTML,
         fragmentShader:document.getElementById('fragmentShader').innerHTML,
 
