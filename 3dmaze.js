@@ -51,7 +51,6 @@ function initScene() {
         uniforms: { 
             "cameraPos" : { type: "v3", value: THREE.Vector3(camera.position.x, camera.position.y, camera.position.z) },
             "timeElapsed": {type:"f", value:0.0},
-
             "EnvMap" : { type: "t", value: mirrorCubeCamera.renderTarget }},
         vertexShader: document.getElementById("envvert").textContent,
         fragmentShader: document.getElementById("tryit").textContent,
@@ -59,7 +58,7 @@ function initScene() {
 
     plane = new THREE.Mesh(new THREE.CubeGeometry(size*2.0, 2.0, size*2.0, 1, 1, 1), planeMaterial);
 
-    plane.position.y = -2.0;        
+    plane.position.y = -1.2;        
     scene.add(plane);
 }
 
@@ -88,7 +87,7 @@ function make3d(shades) {
         var cellscale = resolution;
         cube.position.x = cell.x * cellscale - size/2;
         cube.position.z = cell.y * cellscale - size/2;
-        var ypos = Math.pow(5*(1-(shades[c].pathlen/maxpath)),1.5)*cellscale;
+        var ypos = Math.pow(3*(1-(shades[c].pathlen/maxpath)),2)*cellscale;
         cube.position.y = ypos;
 
         cube.scale.x = cellscale;

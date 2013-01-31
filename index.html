@@ -50,8 +50,8 @@ window.onload = function(evt) {
     render();
     var cb = m.cells.length - 1;
     var cbd = Math.floor(cb / 2);
-
-    make3d(as_path(m, m.cells[cbd][cbd],m.cells[cbd+10][cbd+20],  true)[1]);
+    drawPath(m.cells[cbd][cbd],m.cells[cbd+10][cbd+20]);
+    //make3d(as_path(m, ,  true)[1]);
 };
 
         var canvas = document.getElementById("c");
@@ -90,20 +90,25 @@ canvas.addEventListener("mousedown", function(evt) {
 
 } );
 
+function drawPath(s, e) {
+    var path = as_path(m, s, e, true);
+    var p = path[0];
+    var shades = path[1];
+    for (var i in p) {
+        var c = p[i];
+        c.color = "#f00";
+        c.draw();
+    }
+    make3d(shades);
+}
+
 canvas.addEventListener("mouseup", function(evt) { 
     if (start && end) {
         m.clear();
-        var path = as_path(m, start, end, true);
-        var p = path[0];
-        var shades = path[1];
-        for (var i in p) {
-            var c = p[i];
-            c.color = "#f00";
-            c.draw();
-        }
+        drawPath(start, end);
         start = false; 
         end = false; 
-        make3d(shades);
+
     }} );
 
       </script>
@@ -216,21 +221,22 @@ varying float height;
 varying float lightIntensity;
 uniform float maxY;
 uniform vec3 lightPosition;
-const float ambientLight = 0.1;
+const float ambientLight = 0.3;
 
 vec4 colorAtHeight(float height) {
     vec4 result;
     vec3 color;
 
     color = vec3(0.0, 0.0, 0.0);
-    height = clamp(height/maxY, 0.0, 1.0);
+    height = clamp(height/maxY-0.05, 0.0, 1.0);
     color = color + smoothstep(-1.0, 0.0, height) * vec3(1.0, 1.0, 0.6);    // 1.0 1.0 0.6
     color = color + smoothstep(0.0, 0.1, height) * vec3(-0.8, -0.4, -0.4);  // 0.2 0.6 0.2
-    color = color + smoothstep(0.1, 0.5, height) * vec3(0.0, 0.2, 0.2);      // 0.2 0.8 0.4
-    color = color + smoothstep(0.5, 0.85, height) * vec3(0.0, -0.2, -0.2);    // 0.2 0.6 0.2
-    color = color + smoothstep(0.85, 0.97, height) * vec3(0.5, 0.1, 0.3);      // 0.0 0.4 0.0
-    color = color + smoothstep(0.97, 1.2, height) * vec3(0.3, 0.3, 0.3);  
-    color = color * lightIntensity + ambientLight;
+    color = color + smoothstep(0.1, 0.5, height) * vec3(0.3, 0.4, 0.2);      // 0.2 0.8 0.4
+    color = color + smoothstep(0.5, 0.65, height) * vec3(-0.3, -0.4, -0.2);    // 0.2 0.6 0.2
+    color = color + smoothstep(0.65, 0.9, height) * vec3(0.5, 0.1, 0.3);      // 0.0 0.4 0.0
+    color = color + smoothstep(0.9, 1.0, height) * vec3(0.4, 0.4, 0.4);  
+
+    color = color * (lightIntensity+ambientLight);
     result = vec4(color, 1.0);
     return result;
 }
