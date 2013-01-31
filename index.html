@@ -39,7 +39,7 @@
       <div class="clearfix"></div>
       <h2>Controls</h2>
       <p>
-        W, A, S, D moves forward, left, backwards and right respectively.  Q and E roll the camera.  R raises viewpoint and F lowers it.  Click and drag on the 3D component to steer.
+        W, A, S, D moves forward, left, backwards and right respectively.  Q and E roll the camera.  R raises viewpoint and F lowers it.  Click and drag on the 3D component to steer.  G toggles between FPS style controls and Flying controls.
       </p>
       <p>
         Clicking one point on the maze and then another point will solve the maze between those two points and generate a new 'island' on the 3D view.  Reload the page for a new maze.
@@ -110,6 +110,17 @@ function drawPath(s, e) {
     lastShades = shades;
 //    connectCubes(path[0]);
 }
+document.addEventListener("keyup", function(evt) {
+    if (evt.keyCode == 71) {
+        if (controls) {
+            if (controls instanceof THREE.FlyControls) {
+                setFPSControls();
+            } else {
+                setFlyControls();
+            }
+        }
+    }
+});
 
 canvas.addEventListener("mouseup", function(evt) { 
     if (start && end) {
@@ -217,6 +228,7 @@ void main() {
 precision mediump float;
 varying float height;
 varying float lightIntensity;
+
 uniform vec3 lightPosition;
 
 void main() {
@@ -224,7 +236,7 @@ void main() {
                   modelViewMatrix *
                   vec4(position,1.0);
     height = position.y / 2.0;
-    lightIntensity = max(dot(normalize(vec3(0.5, 1.5, 1.0)), normalize(normal)), 0.0);
+    lightIntensity = max(dot(normalize(vec3(-0.5,0.5,0.25)), normalize(normal)), 0.0);
 }
 </script>
 <script id="fragmentShader" type="x-shader/x-fragment">

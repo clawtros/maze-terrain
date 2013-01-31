@@ -4,40 +4,62 @@ var renderer = new THREE.WebGLRenderer();
 var controls;
 var cubes = [];
 var clock = new THREE.Clock();
-var controls;
 var mirrorCubeCamera, mirrorCube;
 var plane;
 var rtTexture;
 var planeMaterial;
 var renderTarget;
-
+var isfps = false;
 var size = 600;
+var meshes = [];
 
-function initScene() {
-    var alight = new THREE.DirectionalLight(0xffffff, 1);
-    alight.position.set(15, 20, 10);
-    scene.add(alight);
+function setFPSControls() {
+    controls  =new THREE.FirstPersonControls(camera);
+    controls.movementSpeed = 50;
+    controls.lookSpeed = 0.75;
+    controls.activeLook = true;
+    camera.position.y = 10;
+    camera.position.x = 0;
+    camera.position.z = size;
+    controls.domElement = renderer.domElement;
+    isfps = true;
+}
 
-    renderer.setSize(600, 600);    
-    var domelement = document.getElementById('canvases').appendChild(renderer.domElement);
-    renderer.setClearColorHex(0x4444cc);
+function setFlyControls() {
     controls = new THREE.FlyControls( camera );
     controls.movementSpeed=size/10;
     controls.rollSpeed = 1;
     controls.dragToLook = true;
-    
+   
     camera.position.x = 0;
     camera.position.y = size;
     camera.position.z = size;
-    
-    // controls  =new THREE.FirstPersonControls(camera);
-    // controls.movementSpeed = 10;
-    // controls.lookSpeed = 0.05;
+    controls.domElement = renderer.domElement;
+    isfps = false;
+}
 
-    
+function initScene() {
+    var alight = new THREE.DirectionalLight(0xffffff, 1);
+    alight.position.set(size/2, size/4, size/4);
+    scene.add(alight);
+
+    renderer.setSize(600, 600);    
+
+    var lightSphere = new THREE.Sphere(new THREE.CubeGeometry(100,100,100),
+                                       new THREE.MeshBasicMaterial({color:0xffff77, wireframe:true}))
+    lightSphere.position = alight.position;
+    scene.add(lightSphere);
+
+    var domelement = document.getElementById('canvases').appendChild(renderer.domElement);
+    renderer.setClearColorHex(0x4444cc);
+    if (isfps) {
+        setFPSControls();
+    } else {
+        setFlyControls();
+    }
     camera.lookAt(new THREE.Vector3(0, 0, 0));
     
-    controls.domElement = renderer.domElement;
+
 
     mirrorCubeCamera = new THREE.CubeCamera(0.1, 3000, 512);
     var cubeGeom = new THREE.CubeGeometry(600, 5, 600, 1,1,1);
@@ -54,6 +76,7 @@ function initScene() {
         uniforms: { 
             "cameraPos" : { type: "v3", value: THREE.Vector3(camera.position.x, camera.position.y, camera.position.z) },
             "timeElapsed": {type:"f", value:0.0},
+            "lightPosition" : {type:"v3", value: new THREE.Vector3(0, 0, 0)},
             "EnvMap" : { type: "t", value: mirrorCubeCamera.renderTarget }},
         vertexShader: document.getElementById("envvert").textContent,
         fragmentShader: document.getElementById("tryit").textContent,
@@ -109,7 +132,7 @@ function make3d(shades) {
         var cellscale = resolution * 2.0;
         cube.position.x = cell.x * cellscale - size;
         cube.position.z = cell.y * cellscale - size;
-        var ypos = 14*(1-(shades[c].pathlen/maxpath))*cellscale;
+        var ypos = 5*(1-col)*cellscale;
         cube.position.y = ypos;
 
         cube.scale.x = cellscale;
@@ -129,19 +152,38 @@ function make3d(shades) {
         fragmentShader:document.getElementById('fragmentShader').innerHTML,
 
     }));
+    meshes.push(mm);
     mm.position.y = mm.position.y;
     scene.add(mm);
+    controls.meshes = meshes;
 }
 
+function setCameraToMapHeight() {
+    var raycaster = new THREE.Raycaster(new THREE.Vector3(camera.position.x, 
+                                                          600, 
+                                                          camera.position.z), 
+                                        new THREE.Vector3(0, -1, 0));
+    var intersects = raycaster.intersectObjects(meshes);
+    if (intersects.length > 0) {
+        camera.position.y = intersects.map(
+            function (i) {
+                return i.point.y;
+            }
+        ).reduce(function (a,b) {return a > b}) + 10;
+    } else {
+        camera.position.y = 10;
+    }
+}
 function render() { 
     requestAnimationFrame(render);
-
+    if (isfps) {
+//        setCameraToMapHeight();
+    }
     plane.visible = false;
     mirrorCubeCamera.position.x = camera.position.x;
     mirrorCubeCamera.position.y = -camera.position.y;
     mirrorCubeCamera.position.z = camera.position.z;
     mirrorCubeCamera.updateCubeMap(renderer, scene);
-
     plane.visible = true;
 
     planeMaterial.uniforms.cameraPos.value = camera.position;
