@@ -191,6 +191,8 @@ THREE.FirstPersonControls = function ( object, domElement ) {
     this.playerHeight = 10.0;
     this.debugCube = new THREE.Mesh(new THREE.CubeGeometry(5,5,5,1,1,1), 
                                     new THREE.MeshPhongMaterial({color:0xff0000}));
+    this.debugCube.reflectivity = 1.0;
+    this.debugCube.metal = true;
     scene.add(this.debugCube);
     this.walkable = function(x,z) {
         var angle = this.theta;

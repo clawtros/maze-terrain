@@ -47,6 +47,10 @@
       <p>
         WebGL enabled browser required for 3D awesome times.
       </p>
+    <h2>What even is this?</h2>
+    <p>
+    It started off with the maze generator, then changed into a maze solver, then once I realize how continenty the attempted paths of the solver were, it became a simple 2D map generator. I wanted to fly around these maps, so I loaded up some three.js and made it so. 
+</p>
       <script type="text/javascript">
 window.onload = function(evt) {
     initScene();
@@ -212,7 +216,7 @@ void main() {
 //    vec4 refractedColor = textureCube( EnvMap, -1.0*Refract );
     vec4 ripples = textureCube( EnvMap, normalize(vec3(-r.x+svar, -r.y, -r.z+cvar)));
     
-    reflectedColor = mix(reflectedColor, ripples, 0.5);
+    reflectedColor = mix(reflectedColor, ripples, 0.7);
     
     reflectedColor = mix(ripples, vec4(BaseColor,1.0), 0.8);
     float weirdsum = svar+yvar+cvar;

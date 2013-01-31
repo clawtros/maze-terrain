@@ -132,12 +132,13 @@ function make3d(shades) {
         var cellscale = resolution * 2.0;
         cube.position.x = cell.x * cellscale - size;
         cube.position.z = cell.y * cellscale - size;
-        var ypos = 5*(1-col)*cellscale;
+        var ypos = (10*(1-col))*cellscale;
         cube.position.y = ypos;
+        cube.scale.y = 2*ypos;
 
         cube.scale.x = cellscale;
         cube.scale.z = cellscale;
-        cube.scale.y = 2*ypos;
+
         if (col > maxY) {
             maxY = cube.position.y;
         }
