@@ -8,10 +8,8 @@ var controls;
 var mirrorCubeCamera, mirrorCube;
 var plane;
 var rtTexture;
-var composer;
 var planeMaterial;
 var renderTarget;
-
 
 var size = 600;
 
@@ -21,19 +19,24 @@ function initScene() {
     scene.add(alight);
 
     renderer.setSize(600, 600);    
-    document.getElementById('canvases').appendChild(renderer.domElement);
+    var domelement = document.getElementById('canvases').appendChild(renderer.domElement);
     renderer.setClearColorHex(0x4444cc);
     controls = new THREE.FlyControls( camera );
-    controls.movementSpeed=size/5;
+    controls.movementSpeed=size/10;
     controls.rollSpeed = 1;
     controls.dragToLook = true;
     
     camera.position.x = 0;
-    camera.position.y = size/2;
-    camera.position.z = size/2;
+    camera.position.y = size;
+    camera.position.z = size;
+    
+    // controls  =new THREE.FirstPersonControls(camera);
+    // controls.movementSpeed = 10;
+    // controls.lookSpeed = 0.05;
 
+    
     camera.lookAt(new THREE.Vector3(0, 0, 0));
-
+    
     controls.domElement = renderer.domElement;
 
     mirrorCubeCamera = new THREE.CubeCamera(0.1, 3000, 512);
@@ -56,13 +59,31 @@ function initScene() {
         fragmentShader: document.getElementById("tryit").textContent,
     });
 
-    plane = new THREE.Mesh(new THREE.CubeGeometry(size*2.0, 2.0, size*2.0, 1, 1, 1), planeMaterial);
+    plane = new THREE.Mesh(new THREE.CubeGeometry(size*4.0, 2.0, size*4.0, 1, 1, 1), planeMaterial);
 
-    plane.position.y = -1.2;        
+    plane.position.y = -1.5;        
     scene.add(plane);
+
 }
 
+function connectCubes(path) {
+    
+    var lineGeometry = new THREE.Geometry();
+    for (var c = path.length-1; c >= 0; c--) {
+        var cube = cubes[c];
+        
+        lineGeometry.vertices.push(new THREE.Vector3(cube.position.x, 
+                                                     cube.position.y*2 + 1, 
+                                                     cube.position.z));
+    }
+    lineGeometry.verticesNeedUpdate = true;
 
+    var lineMaterial = new THREE.LineBasicMaterial({color:0xff0000});
+    var line = new THREE.Line(lineGeometry, lineMaterial);
+    scene.add(line);
+
+
+}
 
 function make3d(shades) {
 
@@ -74,20 +95,21 @@ function make3d(shades) {
     var maxpath = shades.map(function(i) { return i.pathlen }).reduce(function(a, b) { return a > b ? a : b; });
     var merged = new THREE.CubeGeometry(0,0,0);
     var maxY = 0.1;
+    var geometry = new THREE.CubeGeometry(1,1,1);;    
+
+
     for (var c in shades) {
         var cell = shades[c].cell;
 
         var col = shades[c].pathlen / maxpath;
         var x = 40+Math.floor((shades[c].pathlen / maxpath) * 180);
 
-        var geometry = new THREE.CubeGeometry(1,1,1);
-
         var cube = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial());
         
-        var cellscale = resolution;
-        cube.position.x = cell.x * cellscale - size/2;
-        cube.position.z = cell.y * cellscale - size/2;
-        var ypos = Math.pow(3*(1-(shades[c].pathlen/maxpath)),2)*cellscale;
+        var cellscale = resolution * 2.0;
+        cube.position.x = cell.x * cellscale - size;
+        cube.position.z = cell.y * cellscale - size;
+        var ypos = 14*(1-(shades[c].pathlen/maxpath))*cellscale;
         cube.position.y = ypos;
 
         cube.scale.x = cellscale;
@@ -116,7 +138,7 @@ function render() {
 
     plane.visible = false;
     mirrorCubeCamera.position.x = camera.position.x;
-    mirrorCubeCamera.position.y = -camera.position.y + 0.1;
+    mirrorCubeCamera.position.y = -camera.position.y;
     mirrorCubeCamera.position.z = camera.position.z;
     mirrorCubeCamera.updateCubeMap(renderer, scene);
 
@@ -127,5 +149,6 @@ function render() {
     planeMaterial.uniforms.timeElapsed.value = clock.elapsedTime;
 
     renderer.render(scene, camera);
+//    composer.render();
     controls.update(clock.getDelta());      
 } 

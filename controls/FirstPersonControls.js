@@ -66,7 +66,7 @@ THREE.FirstPersonControls = function ( object, domElement ) {
 			this.viewHalfY = window.innerHeight / 2;
 
 		} else {
-
+                  
 			this.viewHalfX = this.domElement.offsetWidth / 2;
 			this.viewHalfY = this.domElement.offsetHeight / 2;
 

@@ -24,7 +24,10 @@
     <script type="text/javascript" src="mazegen.js"></script>
     <script type="text/javascript" src="three.js"></script> 
     <script type="text/javascript" src="controls/FlyControls.js"></script>
+    <script type="text/javascript" src="controls/FirstPersonControls.js"></script>
+    
     <script type="text/javascript" src="3dmaze.js"></script>
+
   </head>
 
   <body>
@@ -89,6 +92,8 @@ canvas.addEventListener("mousedown", function(evt) {
     }
 
 } );
+var lastPath;
+var lastShades;
 
 function drawPath(s, e) {
     var path = as_path(m, s, e, true);
@@ -100,6 +105,10 @@ function drawPath(s, e) {
         c.draw();
     }
     make3d(shades);
+
+    lastPath = p;
+    lastShades = shades;
+//    connectCubes(path[0]);
 }
 
 canvas.addEventListener("mouseup", function(evt) { 
@@ -172,7 +181,7 @@ varying float Ratio;
 uniform samplerCube EnvMap;
 uniform float timeElapsed;
 
-const vec3 BaseColor = vec3(0.5, 0.5, 1.0);
+const vec3 BaseColor = vec3(0.2, 0.4, 0.8);
 const vec3 Xunitvec = vec3(1.0, 0.0, 0.0);
 const vec3 Yunitvec = vec3(0.0, 1.0, 0.0);
 
@@ -183,19 +192,22 @@ void main() {
     vec3 r = normalize(reflect(DirToCamera, nnormal));
 
     float timescale = 2.0;
-    float svar = sin(uvs.x + timeElapsed*timescale) / 43.145;
-    float cvar = sin(uvs.z + timeElapsed*timescale) / 63.145;
-    float yvar = cos(uvs.y + timeElapsed*timescale) / 43.145;
+    float svar = sin(uvs.x + timeElapsed*timescale) / 143.145;
+    float cvar = sin(uvs.z + timeElapsed*timescale) / 163.145;
+    float yvar = sin(uvs.y + timeElapsed*timescale) / 143.145;
 
 
     vec4 reflectedColor = textureCube( EnvMap, vec3(-r.x, -r.y, -r.z));
-    vec4 refractedColor = textureCube( EnvMap, -1.0*Refract );
+//    vec4 refractedColor = textureCube( EnvMap, -1.0*Refract );
     vec4 ripples = textureCube( EnvMap, normalize(vec3(-r.x+svar, -r.y, -r.z+cvar)));
     
     reflectedColor = mix(reflectedColor, ripples, 0.5);
     
-    reflectedColor = mix(ripples, vec4(BaseColor,1.0), 0.5);
-    reflectedColor = reflectedColor + vec4(svar, yvar, cvar,1.0) * smoothstep(0.0, 1.0, dot(DirToCamera, nnormal));
+    reflectedColor = mix(ripples, vec4(BaseColor,1.0), 0.8);
+    float weirdsum = svar+yvar+cvar;
+    vec4 wave = vec4(weirdsum, weirdsum, weirdsum,1.0) * smoothstep(0.0, 1.0, dot(DirToCamera, nnormal));
+
+    reflectedColor = reflectedColor + wave;
 
     gl_FragColor = reflectedColor;
 }
@@ -229,6 +241,7 @@ vec4 colorAtHeight(float height) {
 
     color = vec3(0.0, 0.0, 0.0);
     height = clamp(height/maxY-0.05, 0.0, 1.0);
+
     color = color + smoothstep(-1.0, 0.0, height) * vec3(1.0, 1.0, 0.6);    // 1.0 1.0 0.6
     color = color + smoothstep(0.0, 0.1, height) * vec3(-0.8, -0.4, -0.4);  // 0.2 0.6 0.2
     color = color + smoothstep(0.1, 0.5, height) * vec3(0.3, 0.4, 0.2);      // 0.2 0.8 0.4
@@ -237,6 +250,7 @@ vec4 colorAtHeight(float height) {
     color = color + smoothstep(0.9, 1.0, height) * vec3(0.4, 0.4, 0.4);  
 
     color = color * (lightIntensity+ambientLight);
+    
     result = vec4(color, 1.0);
     return result;
 }
